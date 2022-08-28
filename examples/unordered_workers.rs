@@ -17,8 +17,12 @@ async fn exercise_out_of_order_execution() {
 
     // Shortest option: create a collection of unordered futures and `join_all(...).await` on it.
     let tasks: FuturesUnordered<_> = (1..=5).map(|x| tokio::spawn(sleep_worker(x))).collect();
-    futures::future::join_all(tasks).await;
-    // ...or do `.collect().await`.
+    // `FuturesUnordered` implements `IntoIterator` so it coerces back into a vector anyway.
+    // Thus we can just construct a vector of futures like the line commented out below.
+    //let tasks: Vec<_> = (1..=5).map(|x| tokio::spawn(sleep_worker(x))).collect();
+    let results: Vec<Result<u64, _>> = futures::future::join_all(tasks).await;
+    println!("{:?}", results);
+    // ...or do `.collect().await`:
     //let _results: Vec<_> = tasks.collect().await;
 
     // Alternative #1: use `select_next_some` from Futures' `StreamExt`.
@@ -44,6 +48,18 @@ async fn exercise_out_of_order_execution() {
     //     tokio::spawn(sleep_worker(5)),
     // ];
     // futures::future::join_all(tasks).await;
+
+    // Alternative #3: just use `for` loops. 🤷
+    // let mut handles = Vec::new();
+    // for i in 1..=5 {
+    //     handles.push(tokio::spawn(sleep_worker(i)));
+    // }
+
+    // let mut output = Vec::new();
+    // for handle in handles {
+    //     output.push(handle.await.unwrap());
+    // }
+    // println!("{:?}", output);
 }
 
 fn init_logging() {
