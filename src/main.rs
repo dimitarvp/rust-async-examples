@@ -1,49 +1,11 @@
 use env_logger::fmt::TimestampPrecision;
 use env_logger::Env;
-use futures::select;
 use futures::stream::{FuturesUnordered, StreamExt};
 use log::{error, trace};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio::time::timeout;
 use tokio::time::{sleep, Duration, Instant};
 use tokio_stream as stream;
-
-async fn sleep_worker(i: u64) -> u64 {
-    let time = Instant::now();
-    sleep(Duration::from_millis(100 / i)).await;
-    trace!("Worker {} elapsed: {:?}", i, time.elapsed());
-    i
-}
-
-async fn exercise_out_of_order_execution() {
-    // This program demonstrates executing async workers out of their original order
-    // because they take different amounts of real time to finish.
-
-    let mut tasks: FuturesUnordered<_> = (1..=5)
-        .map(|x| tokio::spawn(async move { sleep_worker(x).await }))
-        .collect();
-    let mut completed = 0;
-    loop {
-        select! {
-            _num = tasks.select_next_some() => {
-                completed += 1;
-            },
-            complete => break,
-        }
-    }
-
-    trace!("Completed {} workers", completed);
-
-    // Alternative implementation only using `join_all`.
-    // let tasks = vec![
-    //     sleep_worker(1),
-    //     sleep_worker(2),
-    //     sleep_worker(3),
-    //     sleep_worker(4),
-    //     sleep_worker(5),
-    // ];
-    // futures::future::join_all(tasks).await;
-}
 
 async fn channel_sending_worker(i: u64, tx: UnboundedSender<String>) {
     let mut stream = stream::iter(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -122,7 +84,6 @@ async fn main() {
     init();
 
     let time = Instant::now();
-    //exercise_out_of_order_execution().await;
     exercise_parallel_channels_and_deadline().await;
     trace!("Program took {:?}", time.elapsed());
 }
