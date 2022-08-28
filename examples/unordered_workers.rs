@@ -1,7 +1,6 @@
 use env_logger::fmt::TimestampPrecision;
 use env_logger::Env;
-use futures::select;
-use futures::stream::{FuturesUnordered, StreamExt};
+use futures::stream::FuturesUnordered;
 use log::trace;
 use tokio::time::{sleep, Duration, Instant};
 
@@ -16,28 +15,33 @@ async fn exercise_out_of_order_execution() {
     // This program demonstrates executing async workers out of their original order
     // because they take different amounts of real time to finish.
 
-    let mut tasks: FuturesUnordered<_> = (1..=5)
-        .map(|x| tokio::spawn(async move { sleep_worker(x).await }))
-        .collect();
-    let mut completed = 0;
-    loop {
-        select! {
-            _num = tasks.select_next_some() => {
-                completed += 1;
-            },
-            complete => break,
-        }
-    }
+    // Shortest option: create a collection of unordered futures and `join_all(...).await` on it.
+    let tasks: FuturesUnordered<_> = (1..=5).map(|x| tokio::spawn(sleep_worker(x))).collect();
+    futures::future::join_all(tasks).await;
+    // ...or do `.collect().await`.
+    //let _results: Vec<_> = tasks.collect().await;
 
-    trace!("Completed {} workers", completed);
+    // Alternative #1: use `select_next_some` from Futures' `StreamExt`.
+    // use futures::stream::StreamExt;
+    // use futures::select;
+    // let mut completed = 0;
+    // loop {
+    //     select! {
+    //         _num = tasks.select_next_some() => {
+    //             completed += 1;
+    //         },
+    //         complete => break,
+    //     }
+    // }
 
-    // Alternative implementation only using `join_all`.
+    // Alternative #2: directly populate workers and use `join_all`.
+    // (NOTE: using a range with `.map` doesn't work for reasons I didn't pursue.)
     // let tasks = vec![
-    //     sleep_worker(1),
-    //     sleep_worker(2),
-    //     sleep_worker(3),
-    //     sleep_worker(4),
-    //     sleep_worker(5),
+    //     tokio::spawn(sleep_worker(1)),
+    //     tokio::spawn(sleep_worker(2)),
+    //     tokio::spawn(sleep_worker(3)),
+    //     tokio::spawn(sleep_worker(4)),
+    //     tokio::spawn(sleep_worker(5)),
     // ];
     // futures::future::join_all(tasks).await;
 }
