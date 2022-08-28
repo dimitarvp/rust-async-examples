@@ -5,7 +5,7 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use log::trace;
 use tokio::time::{sleep, Duration, Instant};
 
-async fn worker(i: u64) -> u64 {
+async fn sleep_worker(i: u64) -> u64 {
     let time = Instant::now();
     sleep(Duration::from_millis(100 / i)).await;
     trace!("Worker {} elapsed: {:?}", i, time.elapsed());
@@ -16,7 +16,9 @@ async fn exercise_out_of_order_execution() {
     // This program demonstrates executing async workers out of their original order
     // because they take different amounts of real time to finish.
 
-    let mut tasks: FuturesUnordered<_> = (1..=5).map(|x| async move { worker(x).await }).collect();
+    let mut tasks: FuturesUnordered<_> = (1..=5)
+        .map(|x| async move { sleep_worker(x).await })
+        .collect();
     let mut completed = 0;
     loop {
         select! {
