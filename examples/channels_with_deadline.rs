@@ -29,6 +29,11 @@ async fn channel_receiving_worker(rx: &mut UnboundedReceiver<String>) {
     while let Some(value) = rx.recv().await {
         consumed_amount += 1;
         trace!("Received {}", value);
+
+        // This is a preliminary terminating condition e.g. in this case we put an upper limit
+        // of how many items we want to consume from the channel.
+        // If this check + the `.close()` call were omitted then the code would just
+        // terminate after the deadline expires.
         if consumed_amount == expected_amount {
             rx.close();
             trace!("Receiver has sucessfully fetched all data");
