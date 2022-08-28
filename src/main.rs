@@ -30,6 +30,16 @@ async fn exercise_out_of_order_execution() {
     }
 
     trace!("Completed {} workers", completed);
+
+    // Alternative implementation only using `join_all`.
+    // let tasks = vec![
+    //     sleep_worker(1),
+    //     sleep_worker(2),
+    //     sleep_worker(3),
+    //     sleep_worker(4),
+    //     sleep_worker(5),
+    // ];
+    // futures::future::join_all(tasks).await;
 }
 
 fn init() {
