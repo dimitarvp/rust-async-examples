@@ -12,18 +12,7 @@ async fn worker(i: u64) -> u64 {
     i
 }
 
-fn init() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
-        .format_timestamp(Some(TimestampPrecision::Nanos))
-        .init();
-}
-
-#[tokio::main]
-async fn main() {
-    init();
-
-    let time = Instant::now();
-
+async fn exercise_out_of_order_execution() {
     // This program demonstrates executing async workers out of their original order
     // because they take different amounts of real time to finish.
 
@@ -39,5 +28,19 @@ async fn main() {
     }
 
     trace!("Completed {} workers", completed);
+}
+
+fn init() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
+        .format_timestamp(Some(TimestampPrecision::Nanos))
+        .init();
+}
+
+#[tokio::main]
+async fn main() {
+    init();
+
+    let time = Instant::now();
+    exercise_out_of_order_execution().await;
     trace!("Program took {:?}", time.elapsed());
 }
