@@ -17,7 +17,7 @@ async fn exercise_out_of_order_execution() {
     // because they take different amounts of real time to finish.
 
     let mut tasks: FuturesUnordered<_> = (1..=5)
-        .map(|x| async move { sleep_worker(x).await })
+        .map(|x| tokio::spawn(async move { sleep_worker(x).await }))
         .collect();
     let mut completed = 0;
     loop {
