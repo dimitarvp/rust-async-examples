@@ -27,8 +27,7 @@ async fn exercise_add_workers_during_runtime() {
                 let (tx, rx) = mpsc::unbounded_channel::<String>();
                 sleep(Duration::from_millis(480 / i)).await;
 
-                // Spawn sender.
-                tokio::spawn(async move {
+                async move {
                     for _ in 1..=i {
                         sleep(Duration::from_millis(120 / i)).await;
                         let to_send = format!("{}_{}", name, i);
@@ -37,7 +36,8 @@ async fn exercise_add_workers_during_runtime() {
                             Err(e) => error!("{}", format!("{:?}", e)),
                         }
                     }
-                });
+                }
+                .await;
 
                 ((name, i), UnboundedReceiverStream::new(rx))
             }
