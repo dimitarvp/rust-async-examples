@@ -1,6 +1,6 @@
 use env_logger::fmt::TimestampPrecision;
 use env_logger::Env;
-use futures::stream::{self, FuturesUnordered, SelectAll, StreamExt};
+use futures::stream::{self, SelectAll, StreamExt};
 use log::{error, trace};
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration, Instant};
@@ -13,29 +13,25 @@ fn init_logging() {
 }
 
 async fn exercise_add_workers_during_runtime() {
-    let stream_producers: FuturesUnordered<_> = [("A", 2), ("B", 3), ("C", 4)]
-        .map(|(name, i)| {
-            let (tx, rx) = mpsc::unbounded_channel::<String>();
+    let mut stream_producers = stream::iter([("A", 2), ("B", 3), ("C", 4)].map(|(name, i)| {
+        let (tx, rx) = mpsc::unbounded_channel::<String>();
 
-            tokio::spawn(async move {
-                sleep(Duration::from_millis(480 / i)).await;
+        tokio::spawn(async move {
+            sleep(Duration::from_millis(480 / i)).await;
 
-                for _ in 1..=i {
-                    sleep(Duration::from_millis(120 / i)).await;
-                    let to_send = format!("{}_{}", name, i);
-                    match tx.send(to_send.clone()) {
-                        Ok(_) => trace!("Sent {}", to_send.clone()),
-                        Err(e) => error!("{}", format!("{:?}", e)),
-                    }
+            for _ in 1..=i {
+                sleep(Duration::from_millis(120 / i)).await;
+                let to_send = format!("{}_{}", name, i);
+                match tx.send(to_send.clone()) {
+                    Ok(_) => trace!("Sent {}", to_send.clone()),
+                    Err(e) => error!("{}", format!("{:?}", e)),
                 }
-            });
+            }
+        });
 
-            ((name, i), UnboundedReceiverStream::new(rx))
-        })
-        .into_iter()
-        .collect();
-
-    let mut stream_producers = stream::iter(stream_producers).fuse();
+        ((name, i), UnboundedReceiverStream::new(rx))
+    }))
+    .fuse();
 
     let mut streams = SelectAll::new();
 
