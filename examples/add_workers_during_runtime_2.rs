@@ -22,8 +22,7 @@ async fn exercise_add_workers_during_runtime() {
         .map(|(name, i)| {
             // We don't seem to need `tokio::spawn` (namely true parallelism) here
             // because the different tasks yield at different times.
-            // TODO: Add `tokio::spawn` and modify the code as needed.
-            async move {
+            tokio::spawn(async move {
                 let (tx, rx) = mpsc::unbounded_channel::<String>();
                 sleep(Duration::from_millis(480 / i)).await;
 
@@ -40,7 +39,7 @@ async fn exercise_add_workers_during_runtime() {
                 .await;
 
                 ((name, i), UnboundedReceiverStream::new(rx))
-            }
+            })
         })
         .into_iter()
         .collect();
@@ -49,9 +48,16 @@ async fn exercise_add_workers_during_runtime() {
 
     loop {
         futures::select! {
-            ((name, i), stream) = stream_producers.select_next_some() => {
-                trace!("Produced stream {}_{}", name, i);
-                streams.push(stream);
+            stream_result = stream_producers.select_next_some() => {
+                match stream_result {
+                    Ok(((name, i), stream)) => {
+                        trace!("Produced stream {}_{}", name, i);
+                        streams.push(stream);
+                    },
+                    Err(e) => {
+                        error!("Could not get stream: {:?}", e);
+                    }
+                }
             },
             value = streams.select_next_some() => {
                 trace!("Received {}", value);
