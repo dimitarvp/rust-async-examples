@@ -51,6 +51,31 @@ async fn exercise_add_workers_during_runtime() {
             complete => break,
         }
     }
+
+    // NOTE: When using `tokio::select!` we have to match on `Some(expected_value)`.
+    // However, also matching on `None` should NOT be done because that leads to early exits
+    // e.g. we produced all streams and are now trying to get more but we get none
+    // and we don't proceed to actually read data from the streams themselves
+    // (the second arm of the `tokio::select!` construct).
+
+    // Hence, when using `tokio::select!` we should only match on what we expect to come out
+    // and ignore everything else?
+
+    // TODO: Make stream producing fallible so we learn how to handle errors.
+    // TODO: Make reading from a stream fallible so we learn how to handle errors there as well.
+
+    // loop {
+    //     tokio::select! {
+    //         Some(((name, i), stream)) = stream_producers.next() => {
+    //             trace!("Produced stream {}_{}", name, i);
+    //             streams.push(stream);
+    //         },
+    //         Some(value) = streams.next() => {
+    //             trace!("Received {}", value);
+    //         },
+    //         else => break,
+    //     }
+    // }
 }
 
 #[tokio::main]
