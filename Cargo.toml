@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-stream = "0.3.3"
 env_logger = "0.9.0"
 futures = "0.3.23"
 log = { version = "0.4.17", default-features = false }
